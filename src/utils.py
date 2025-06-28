@@ -50,11 +50,9 @@ def calculate_data_quality_metrics(df: pd.DataFrame) -> Dict[str, Any]:
         'data_types': df.dtypes.to_dict()
     }
     
-    # Calcular porcentaje de valores faltantes
     missing_pct = (df.isnull().sum() / len(df) * 100).to_dict()
     metrics['missing_percentage'] = missing_pct
     
-    # Para columnas numéricas, calcular estadísticas básicas
     numeric_cols = df.select_dtypes(include=[np.number]).columns
     if len(numeric_cols) > 0:
         metrics['numeric_stats'] = df[numeric_cols].describe().to_dict()
@@ -134,7 +132,6 @@ def compare_datasets(df1: pd.DataFrame, df2: pd.DataFrame,
         'differences': {}
     }
     
-    # Comparar número de filas
     if len(df1) != len(df2):
         comparison['differences']['row_count'] = {
             'df1': len(df1),
@@ -142,7 +139,6 @@ def compare_datasets(df1: pd.DataFrame, df2: pd.DataFrame,
             'difference': abs(len(df1) - len(df2))
         }
     
-    # Comparar columnas
     cols1 = set(df1.columns)
     cols2 = set(df2.columns)
     
@@ -153,7 +149,6 @@ def compare_datasets(df1: pd.DataFrame, df2: pd.DataFrame,
             'common': list(cols1 & cols2)
         }
     
-    # Comparar valores en columnas comunes
     common_cols = cols1 & cols2
     if common_cols:
         comparison['differences']['value_comparison'] = {}
@@ -161,13 +156,11 @@ def compare_datasets(df1: pd.DataFrame, df2: pd.DataFrame,
         for col in common_cols:
             if df1[col].dtype == df2[col].dtype:
                 if df1[col].dtype in ['object', 'string']:
-                    # Para columnas categóricas
                     comparison['differences']['value_comparison'][col] = {
                         'unique_values_df1': df1[col].nunique(),
                         'unique_values_df2': df2[col].nunique()
                     }
                 else:
-                    # Para columnas numéricas
                     comparison['differences']['value_comparison'][col] = {
                         'mean_df1': df1[col].mean(),
                         'mean_df2': df2[col].mean(),
@@ -212,7 +205,6 @@ def create_summary_report(df: pd.DataFrame, output_file: str = "summary_report.t
             std_val = df[col].std()
             report_lines.append(f"{col}: {dtype} | Nulls: {null_count} ({null_pct:.1f}%) | Mean: {mean_val:.2f} | Std: {std_val:.2f}")
     
-    # Estadísticas específicas para columnas importantes
     if 'clicked' in df.columns:
         click_rate = df['clicked'].mean() * 100
         report_lines.extend([
@@ -234,7 +226,6 @@ def create_summary_report(df: pd.DataFrame, output_file: str = "summary_report.t
             f"Promedio de registros por usuario: {len(df) / unique_users:.2f}"
         ])
     
-    # Guardar reporte
     output_path = OUTPUT_DIR / output_file
     with open(output_path, 'w', encoding='utf-8') as f:
         f.write('\n'.join(report_lines))

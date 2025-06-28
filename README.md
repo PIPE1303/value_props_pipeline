@@ -5,33 +5,35 @@ Pipeline de ingeniería de datos para el ranking de value propositions basado en
 ## Estructura del Proyecto
 
 ```
-value-prop-ranking-pipeline/
+value_props_pipeline/
 ├── data/                   # Datos fuente (no modificar)
 │   ├── prints.json
 │   ├── taps.json
 │   └── pays.csv
 ├── src/                    # Código fuente principal
 │   ├── __init__.py
-│   ├── config.py          # Configuración del proyecto
-│   ├── io_utils.py        # Utilidades de I/O
+│   ├── config.py           # Configuración del proyecto
+│   ├── io_utils.py         # Utilidades de I/O
 │   ├── feature_engineering.py  # Ingeniería de features
-│   ├── pipeline.py        # Pipeline principal (Pandas)
-│   ├── spark_pipeline.py  # Pipeline alternativo (Spark)
-│   └── utils.py           # Utilidades generales
-├── scripts/               # Scripts de ejecución
+│   ├── pipeline.py         # Pipeline principal (Pandas)
+│   ├── spark_pipeline.py   # Pipeline alternativo (Spark)
+│   └── utils.py            # Utilidades generales
+├── scripts/                # Scripts de ejecución
 │   ├── run_spark_pipeline.py
-│   └── compare_pipelines.py
-├── tests/                 # Tests unitarios
-│   ├── test_pipeline.py
-│   └── test_features.py
-├── notebooks/             # Notebooks de exploración
+│   ├── compare_pipelines.py
+│   └── cleanup.py
+├── tests/                  # Tests unitarios
+│   └── test_pipeline.py
+├── notebooks/              # Notebooks de exploración
 │   ├── pipeline_pandas.py
 │   └── pipeline_pyspark.py
-├── output/                # Resultados generados
-├── logs/                  # Logs de ejecución
-├── models/                # Modelos entrenados (futuro)
-├── main.py               # Script principal
-├── requirements.txt      # Dependencias
+├── output/                 # Resultados generados (datasets, reportes)
+├── logs/                   # Logs de ejecución (pipeline.log, spark_pipeline.log, comparison.log)
+├── models/                 # Modelos entrenados (futuro)
+├── main.py                 # Script principal
+├── requirements.txt        # Dependencias
+├── pyproject.toml          # Configuración de herramientas de desarrollo
+├── Makefile                # Automatización de comandos
 └── README.md
 ```
 
@@ -40,7 +42,7 @@ value-prop-ranking-pipeline/
 1. **Clonar el repositorio:**
 ```bash
 git clone <repository-url>
-cd value-prop-ranking-pipeline
+cd value_props_pipeline
 ```
 
 2. **Crear entorno virtual:**
@@ -117,10 +119,10 @@ El pipeline incluye múltiples validaciones:
 
 El pipeline genera automáticamente:
 
-- **Dataset final**: CSV con todas las features
+- **Dataset final**: CSV con todas las features (en `output/`)
 - **Reporte resumen**: Estadísticas descriptivas
 - **Metadatos**: Información del procesamiento
-- **Logs**: Trazabilidad completa del proceso
+- **Logs**: Trazabilidad completa del proceso (en `logs/`)
 
 ## Testing
 
@@ -153,9 +155,9 @@ pytest --cov=src tests/
 - **Completitud**: Verificación de valores faltantes
 
 ### 4. Salida
-- **Dataset final**: CSV listo para modelado
+- **Dataset final**: CSV listo para modelado (en `output/`)
 - **Reportes**: Documentación del procesamiento
-- **Logs**: Trazabilidad del proceso
+- **Logs**: Trazabilidad del proceso (en `logs/`)
 
 ## Optimizaciones
 
@@ -171,7 +173,7 @@ pytest --cov=src tests/
 
 ## Logs
 
-Los logs se guardan en `logs/` y `output/` con diferentes niveles:
+Los logs se guardan en la carpeta `logs/` con diferentes niveles:
 
 - **INFO**: Progreso del pipeline
 - **WARNING**: Problemas no críticos

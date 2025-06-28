@@ -20,10 +20,8 @@ def add_click_flag(prints_df: pd.DataFrame, taps_df: pd.DataFrame) -> pd.DataFra
     """
     logger.info("Añadiendo flag de click...")
     
-    # Crear conjunto único de taps
     taps_set = taps_df[['user_id', 'value_prop_id', 'timestamp']].drop_duplicates()
     
-    # Merge con prints para identificar clicks
     result = prints_df.merge(
         taps_set,
         on=['user_id', 'value_prop_id', 'timestamp'],
@@ -31,7 +29,6 @@ def add_click_flag(prints_df: pd.DataFrame, taps_df: pd.DataFrame) -> pd.DataFra
         indicator='click_flag'
     )
     
-    # Crear columna clicked
     result['clicked'] = (result['click_flag'] == 'both').astype(int)
     result = result.drop(columns=['click_flag'])
     
@@ -60,21 +57,17 @@ def add_historical_features(
     """
     logger.info(f"Añadiendo features históricas desde {window_start} hasta {window_end}")
     
-    # Filtrar datos en la ventana temporal
     mask = (source_df['timestamp'] >= window_start) & (source_df['timestamp'] < window_end)
     filtered_source = source_df[mask].copy()
     
     if filtered_source.empty:
         logger.warning("No hay datos en la ventana temporal especificada")
-        # Añadir columnas con valores 0
         for feature_name in features_config.keys():
             df[feature_name] = 0
         return df
     
-    # Calcular agregaciones por usuario y value_prop
     grouped = filtered_source.groupby(['user_id', 'value_prop_id'])
     
-    # Crear DataFrame con features calculadas
     features_df = pd.DataFrame()
     
     for feature_name, config in features_config.items():
@@ -87,13 +80,10 @@ def add_historical_features(
         else:
             raise ValueError(f"Función de agregación no soportada: {config['agg_func']}")
     
-    # Resetear índice para merge
     features_df = features_df.reset_index()
     
-    # Merge con DataFrame principal
     result = df.merge(features_df, on=['user_id', 'value_prop_id'], how='left')
     
-    # Rellenar valores NaN con 0
     for feature_name in features_config.keys():
         result[feature_name] = result[feature_name].fillna(0)
     
@@ -120,18 +110,15 @@ def create_features_pipeline(
     """
     logger.info("Iniciando pipeline de features...")
     
-    # Determinar fecha final si no se proporciona
     if end_date is None:
         end_date = prints_df['timestamp'].max()
     
-    # Definir ventanas temporales
     start_last_week = end_date - timedelta(days=RECENT_DAYS)
     start_3weeks_ago = end_date - timedelta(days=WINDOW_DAYS)
     
     logger.info(f"Ventana de análisis: {start_last_week} a {end_date}")
     logger.info(f"Ventana histórica: {start_3weeks_ago} a {start_last_week}")
     
-    # Filtrar prints recientes
     recent_prints = prints_df[
         (prints_df['timestamp'] >= start_last_week) & 
         (prints_df['timestamp'] <= end_date)
@@ -139,30 +126,25 @@ def create_features_pipeline(
     
     logger.info(f"Prints recientes encontrados: {len(recent_prints)}")
     
-    # Añadir flag de click
     recent_prints = add_click_flag(recent_prints, taps_df)
     
-    # Configuración de features históricas
     features_config = {
         'print_count_3w': {'agg_func': 'count'},
         'tap_count_3w': {'agg_func': 'count'},
         'pay_count_3w': {'agg_func': 'count'},
         'total_amount_3w': {'agg_func': 'sum', 'column': 'amount'}
     }
-    
-    # Añadir features de prints
+
     recent_prints = add_historical_features(
         recent_prints, prints_df, start_3weeks_ago, start_last_week,
         {'print_count_3w': {'agg_func': 'count'}}
     )
     
-    # Añadir features de taps
     recent_prints = add_historical_features(
         recent_prints, taps_df, start_3weeks_ago, start_last_week,
         {'tap_count_3w': {'agg_func': 'count'}}
     )
     
-    # Añadir features de pays
     recent_prints = add_historical_features(
         recent_prints, pays_df, start_3weeks_ago, start_last_week,
         {

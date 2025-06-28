@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Tuple
 from .config import PRINTS_FILE, TAPS_FILE, PAYS_FILE
 
-# Configurar logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 

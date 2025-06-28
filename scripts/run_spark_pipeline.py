@@ -7,37 +7,30 @@ import sys
 import logging
 from pathlib import Path
 
-# Añadir el directorio src al path
 sys.path.append(str(Path(__file__).parent.parent / "src"))
 
 from src.spark_pipeline import SparkValuePropsPipeline
 from src.utils import setup_logging, create_summary_report, save_metadata
-from src.config import OUTPUT_DIR
+from src.config import OUTPUT_DIR, LOGS_DIR
 
 def main():
     """Función principal para ejecutar el pipeline de Spark."""
     
-    # Configurar logging
-    log_file = OUTPUT_DIR / "spark_pipeline.log"
+    log_file = LOGS_DIR / "spark_pipeline.log"
     setup_logging(log_level="INFO", log_file=log_file)
     logger = logging.getLogger(__name__)
     
     try:
-        logger.info("🚀 Iniciando Value Props Ranking Pipeline con Spark")
+        logger.info("Iniciando Value Props Ranking Pipeline con Spark")
         
-        # Inicializar pipeline de Spark
         spark_pipeline = SparkValuePropsPipeline()
         
-        # Ejecutar pipeline
         dataset = spark_pipeline.run_pipeline("dataset_final_spark.csv")
         
-        # Convertir a pandas para análisis adicional
         pandas_dataset = dataset.select("*").toPandas()
         
-        # Crear reporte resumen
         create_summary_report(pandas_dataset, "spark_summary_report.txt")
         
-        # Guardar metadatos
         metadata = {
             'pipeline_type': 'spark',
             'total_records': len(pandas_dataset),
@@ -48,13 +41,13 @@ def main():
         }
         save_metadata(metadata, "spark_dataset_metadata.json")
         
-        logger.info("✅ Pipeline de Spark completado exitosamente")
-        logger.info(f"📊 Dataset generado: {OUTPUT_DIR / 'dataset_final_spark.csv'}")
-        logger.info(f"📈 Registros procesados: {len(pandas_dataset):,}")
-        logger.info(f"🎯 Tasa de clicks: {pandas_dataset['clicked'].mean():.2%}")
+        logger.info("Pipeline de Spark completado exitosamente")
+        logger.info(f"Dataset generado: {OUTPUT_DIR / 'dataset_final_spark.csv'}")
+        logger.info(f"Registros procesados: {len(pandas_dataset):,}")
+        logger.info(f"Tasa de clicks: {pandas_dataset['clicked'].mean():.2%}")
         
     except Exception as e:
-        logger.error(f"❌ Error en el pipeline de Spark: {str(e)}")
+        logger.error(f"Error en el pipeline de Spark: {str(e)}")
         sys.exit(1)
 
 if __name__ == "__main__":

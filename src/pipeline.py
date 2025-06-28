@@ -20,20 +20,15 @@ def build_dataset(end_date: Optional[pd.Timestamp] = None) -> pd.DataFrame:
     logger.info("Iniciando construcción del dataset...")
     
     try:
-        # 1. Cargar datos
         prints, taps, pays = load_data()
         
-        # 2. Validar datos
         if not validate_data(prints, taps, pays):
             raise ValueError("Los datos no pasaron la validación")
         
-        # 3. Crear features
         dataset = create_features_pipeline(prints, taps, pays, end_date)
         
-        # 4. Seleccionar columnas finales
         final_dataset = dataset[FINAL_COLUMNS].copy()
         
-        # 5. Mostrar estadísticas
         stats = get_feature_statistics(final_dataset)
         logger.info("Estadísticas del dataset:")
         for feature, stat in stats.items():
@@ -56,10 +51,8 @@ def run_pipeline(output_filename: str = "dataset_final.csv") -> None:
     logger.info("Ejecutando pipeline completo...")
     
     try:
-        # Construir dataset
         dataset = build_dataset()
         
-        # Guardar resultado
         save_dataset(dataset, output_filename)
         
         logger.info("Pipeline completado exitosamente")
@@ -77,23 +70,18 @@ def run_pipeline_with_validation() -> pd.DataFrame:
     """
     logger.info("Ejecutando pipeline con validaciones...")
     
-    # Construir dataset
     dataset = build_dataset()
     
-    # Validaciones adicionales
     logger.info("Realizando validaciones adicionales...")
     
-    # Verificar que no hay valores NaN en columnas críticas
     critical_cols = ['user_id', 'value_prop_id', 'timestamp']
     for col in critical_cols:
         if dataset[col].isnull().any():
             logger.warning(f"Valores NaN encontrados en columna crítica: {col}")
     
-    # Verificar que clicked es binario
     if not set(dataset['clicked'].unique()).issubset({0, 1}):
         logger.warning("La columna 'clicked' no es binaria")
     
-    # Verificar que las features numéricas son no-negativas
     numeric_features = ['print_count_3w', 'tap_count_3w', 'pay_count_3w', 'total_amount_3w']
     for feature in numeric_features:
         if (dataset[feature] < 0).any():

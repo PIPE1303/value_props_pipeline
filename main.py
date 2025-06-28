@@ -7,18 +7,20 @@ import logging
 import sys
 from pathlib import Path
 
-# Añadir el directorio src al path
 sys.path.append(str(Path(__file__).parent / "src"))
 
 from src.pipeline import run_pipeline, run_pipeline_with_validation
-from src.config import OUTPUT_DIR
+from src.config import OUTPUT_DIR, LOGS_DIR
 
-# Configurar logging
+# Configurar logging antes de ejecutar el pipeline
+log_file = LOGS_DIR / "pipeline.log"
+log_file.parent.mkdir(exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler(OUTPUT_DIR / "pipeline.log"),
+        logging.FileHandler(log_file),
         logging.StreamHandler(sys.stdout)
     ]
 )
@@ -30,10 +32,8 @@ def main():
     try:
         logger.info("Iniciando Value Props Ranking Pipeline")
         
-        # Ejecutar pipeline con validaciones
         dataset = run_pipeline_with_validation()
         
-        # Guardar resultado
         output_file = OUTPUT_DIR / "dataset_final.csv"
         dataset.to_csv(output_file, index=False)
         
@@ -42,7 +42,6 @@ def main():
         logger.info(f"Registros procesados: {len(dataset):,}")
         logger.info(f"Tasa de clicks: {dataset['clicked'].mean():.2%}")
         
-        # Mostrar estadísticas básicas
         logger.info("Estadísticas del dataset:")
         logger.info(f"   - Usuarios únicos: {dataset['user_id'].nunique():,}")
         logger.info(f"   - Value props únicos: {dataset['value_prop_id'].nunique():,}")

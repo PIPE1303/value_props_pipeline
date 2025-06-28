@@ -33,7 +33,6 @@ class SparkValuePropsPipeline:
         
         builder = SparkSession.builder.appName(self.spark_config["app_name"])
         
-        # Aplicar configuración personalizada
         for key, value in self.spark_config.items():
             if key != "app_name":
                 builder = builder.config(key, value)
@@ -62,17 +61,14 @@ class SparkValuePropsPipeline:
         """Carga los datos desde los archivos fuente."""
         logger.info("Cargando datos con Spark...")
         
-        # Cargar prints
         prints = self.spark.read.schema(self.prints_schema).json(str(PRINTS_FILE))
         prints = prints.withColumn("value_prop_id", col("event_data").getItem("value_prop"))
         prints = prints.withColumn("timestamp", to_timestamp(col("day")))
         
-        # Cargar taps
         taps = self.spark.read.schema(self.taps_schema).json(str(TAPS_FILE))
         taps = taps.withColumn("value_prop_id", col("event_data").getItem("value_prop"))
         taps = taps.withColumn("timestamp", to_timestamp(col("day")))
         
-        # Cargar pays
         pays = self.spark.read.schema(self.pays_schema).csv(str(PAYS_FILE), header=True)
         pays = pays.withColumn("timestamp", to_timestamp(col("pay_date")))
         
@@ -138,29 +134,23 @@ class SparkValuePropsPipeline:
         """Construye el dataset final con todas las features."""
         logger.info("Construyendo dataset con Spark...")
         
-        # Cargar datos
         prints, taps, pays = self.load_data()
         
-        # Determinar fecha final
         if end_date is None:
             end_date = prints.agg({"timestamp": "max"}).collect()[0][0]
         
-        # Definir ventanas temporales
         start_last_week = end_date - timedelta(days=RECENT_DAYS)
         start_3weeks_ago = end_date - timedelta(days=WINDOW_DAYS)
         
         logger.info(f"Ventana de análisis: {start_last_week} a {end_date}")
         logger.info(f"Ventana histórica: {start_3weeks_ago} a {start_last_week}")
         
-        # Filtrar prints recientes
         recent_prints = prints.filter(
             (col("timestamp") >= start_last_week) & (col("timestamp") <= end_date)
         )
         
-        # Añadir flag de click
         recent_prints = self.add_click_flag(recent_prints, taps)
         
-        # Añadir features históricas
         recent_prints = self.add_historical_features(
             recent_prints, prints, start_3weeks_ago, start_last_week,
             new_col="print_count_3w", agg_func="count"
