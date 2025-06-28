@@ -6,7 +6,7 @@ Data engineering pipeline for value proposition ranking based on user behavior.
 
 ```
 value_props_pipeline/
-├── data/                   # Source data (do not modify)
+├── data/                   # Source data (Not uploaded due to security issues)
 │   ├── prints.json
 │   ├── taps.json
 │   └── pays.csv
