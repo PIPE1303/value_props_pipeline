@@ -1,5 +1,5 @@
 """
-Utilidades generales para el proyecto Value Props Ranking.
+General utilities for the Value Props Ranking project.
 """
 
 import pandas as pd
@@ -14,11 +14,11 @@ logger = logging.getLogger(__name__)
 
 def setup_logging(log_level: str = "INFO", log_file: Optional[Path] = None) -> None:
     """
-    Configura el sistema de logging.
+    Configure the logging system.
     
     Args:
-        log_level: Nivel de logging (DEBUG, INFO, WARNING, ERROR)
-        log_file: Archivo de log (opcional)
+        log_level: Logging level (DEBUG, INFO, WARNING, ERROR)
+        log_file: Log file (optional)
     """
     handlers = [logging.StreamHandler()]
     
@@ -34,13 +34,13 @@ def setup_logging(log_level: str = "INFO", log_file: Optional[Path] = None) -> N
 
 def calculate_data_quality_metrics(df: pd.DataFrame) -> Dict[str, Any]:
     """
-    Calcula métricas de calidad de datos.
+    Calculate data quality metrics.
     
     Args:
-        df: DataFrame a analizar
+        df: DataFrame to analyze
         
     Returns:
-        Dict con métricas de calidad
+        Dict with quality metrics
     """
     metrics = {
         'total_rows': len(df),
@@ -61,33 +61,33 @@ def calculate_data_quality_metrics(df: pd.DataFrame) -> Dict[str, Any]:
 
 def validate_dataset_schema(df: pd.DataFrame, expected_schema: Dict[str, str]) -> bool:
     """
-    Valida que el DataFrame tenga el esquema esperado.
+    Validate that the DataFrame has the expected schema.
     
     Args:
-        df: DataFrame a validar
-        expected_schema: Diccionario con columna: tipo_esperado
+        df: DataFrame to validate
+        expected_schema: Dictionary with column: expected_type
         
     Returns:
-        bool: True si el esquema es válido
+        bool: True if schema is valid
     """
     for column, expected_type in expected_schema.items():
         if column not in df.columns:
-            logger.error(f"Columna faltante: {column}")
+            logger.error(f"Missing column: {column}")
             return False
         
         actual_type = str(df[column].dtype)
         if expected_type not in actual_type:
-            logger.warning(f"Tipo de columna {column}: esperado {expected_type}, actual {actual_type}")
+            logger.warning(f"Column type {column}: expected {expected_type}, actual {actual_type}")
     
     return True
 
 def save_metadata(dataset_info: Dict[str, Any], filename: str = "dataset_metadata.json") -> None:
     """
-    Guarda metadatos del dataset.
+    Save dataset metadata.
     
     Args:
-        dataset_info: Información del dataset
-        filename: Nombre del archivo de metadatos
+        dataset_info: Dataset information
+        filename: Metadata filename
     """
     from .config import OUTPUT_DIR
     
@@ -100,21 +100,21 @@ def save_metadata(dataset_info: Dict[str, Any], filename: str = "dataset_metadat
     with open(output_path, 'w') as f:
         json.dump(metadata, f, indent=2, default=str)
     
-    logger.info(f"Metadatos guardados en: {output_path}")
+    logger.info(f"Metadata saved to: {output_path}")
 
 def compare_datasets(df1: pd.DataFrame, df2: pd.DataFrame, 
                     name1: str = "Dataset 1", name2: str = "Dataset 2") -> Dict[str, Any]:
     """
-    Compara dos datasets y genera un reporte de diferencias.
+    Compare two datasets and generate a difference report.
     
     Args:
-        df1: Primer DataFrame
-        df2: Segundo DataFrame
-        name1: Nombre del primer dataset
-        name2: Nombre del segundo dataset
+        df1: First DataFrame
+        df2: Second DataFrame
+        name1: First dataset name
+        name2: Second dataset name
         
     Returns:
-        Dict con reporte de comparación
+        Dict with comparison report
     """
     comparison = {
         'dataset1': {
@@ -172,23 +172,23 @@ def compare_datasets(df1: pd.DataFrame, df2: pd.DataFrame,
 
 def create_summary_report(df: pd.DataFrame, output_file: str = "summary_report.txt") -> None:
     """
-    Crea un reporte resumen del dataset.
+    Create a dataset summary report.
     
     Args:
-        df: DataFrame a analizar
-        output_file: Nombre del archivo de reporte
+        df: DataFrame to analyze
+        output_file: Report filename
     """
     from .config import OUTPUT_DIR
     
     report_lines = [
         "=" * 50,
-        "REPORTE RESUMEN DEL DATASET",
+        "DATASET SUMMARY REPORT",
         "=" * 50,
-        f"Fecha de generación: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-        f"Total de registros: {len(df):,}",
-        f"Total de columnas: {len(df.columns)}",
+        f"Generation date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        f"Total records: {len(df):,}",
+        f"Total columns: {len(df.columns)}",
         "",
-        "COLUMNAS:",
+        "COLUMNS:",
         "-" * 20
     ]
     
@@ -199,7 +199,7 @@ def create_summary_report(df: pd.DataFrame, output_file: str = "summary_report.t
         
         if df[col].dtype in ['object', 'string']:
             unique_count = df[col].nunique()
-            report_lines.append(f"{col}: {dtype} | Nulls: {null_count} ({null_pct:.1f}%) | Únicos: {unique_count}")
+            report_lines.append(f"{col}: {dtype} | Nulls: {null_count} ({null_pct:.1f}%) | Unique: {unique_count}")
         else:
             mean_val = df[col].mean()
             std_val = df[col].std()
@@ -209,38 +209,38 @@ def create_summary_report(df: pd.DataFrame, output_file: str = "summary_report.t
         click_rate = df['clicked'].mean() * 100
         report_lines.extend([
             "",
-            "ESTADÍSTICAS DE CLICK:",
+            "CLICK STATISTICS:",
             "-" * 20,
-            f"Tasa de click: {click_rate:.2f}%",
+            f"Click rate: {click_rate:.2f}%",
             f"Total clicks: {df['clicked'].sum():,}",
-            f"Total impresiones: {len(df):,}"
+            f"Total impressions: {len(df):,}"
         ])
     
     if 'user_id' in df.columns:
         unique_users = df['user_id'].nunique()
         report_lines.extend([
             "",
-            "ESTADÍSTICAS DE USUARIOS:",
+            "USER STATISTICS:",
             "-" * 20,
-            f"Usuarios únicos: {unique_users:,}",
-            f"Promedio de registros por usuario: {len(df) / unique_users:.2f}"
+            f"Unique users: {unique_users:,}",
+            f"Average records per user: {len(df) / unique_users:.2f}"
         ])
     
     output_path = OUTPUT_DIR / output_file
     with open(output_path, 'w', encoding='utf-8') as f:
         f.write('\n'.join(report_lines))
     
-    logger.info(f"Reporte resumen guardado en: {output_path}")
+    logger.info(f"Summary report saved to: {output_path}")
 
 def get_memory_usage(df: pd.DataFrame) -> Dict[str, Any]:
     """
-    Calcula el uso de memoria del DataFrame.
+    Calculate DataFrame memory usage.
     
     Args:
-        df: DataFrame a analizar
+        df: DataFrame to analyze
         
     Returns:
-        Dict con información de uso de memoria
+        Dict with memory usage information
     """
     memory_usage = df.memory_usage(deep=True)
     
@@ -248,7 +248,7 @@ def get_memory_usage(df: pd.DataFrame) -> Dict[str, Any]:
         'total_memory_mb': memory_usage.sum() / 1024 / 1024,
         'memory_per_column': memory_usage.to_dict(),
         'memory_efficiency': {
-            'total_memory_mb': memory_usage.sum() / 1024 / 1024,
-            'memory_per_row_kb': (memory_usage.sum() / len(df)) / 1024
+            'memory_per_row': memory_usage.sum() / len(df) if len(df) > 0 else 0,
+            'memory_per_column_avg': memory_usage.mean()
         }
     } 

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "value-prop-ranking-pipeline"
 version = "1.0.0"
-description = "Pipeline de ingeniería de datos para el ranking de value propositions"
+description = "Data engineering pipeline for value proposition ranking"
 authors = [
     {name = "Data Engineering Team", email = "data-engineering@company.com"}
 ]

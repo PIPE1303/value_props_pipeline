@@ -9,16 +9,16 @@ logger = logging.getLogger(__name__)
 
 def add_click_flag(prints_df: pd.DataFrame, taps_df: pd.DataFrame) -> pd.DataFrame:
     """
-    Añade la columna 'clicked' basada en la coincidencia con taps.
+    Add 'clicked' column based on matches with taps.
     
     Args:
-        prints_df: DataFrame de prints
-        taps_df: DataFrame de taps
+        prints_df: Prints DataFrame
+        taps_df: Taps DataFrame
         
     Returns:
-        pd.DataFrame: DataFrame con columna 'clicked' añadida
+        pd.DataFrame: DataFrame with 'clicked' column added
     """
-    logger.info("Añadiendo flag de click...")
+    logger.info("Adding click flag...")
     
     taps_set = taps_df[['user_id', 'value_prop_id', 'timestamp']].drop_duplicates()
     
@@ -32,7 +32,7 @@ def add_click_flag(prints_df: pd.DataFrame, taps_df: pd.DataFrame) -> pd.DataFra
     result['clicked'] = (result['click_flag'] == 'both').astype(int)
     result = result.drop(columns=['click_flag'])
     
-    logger.info(f"Flag de click añadido. Clicks encontrados: {result['clicked'].sum()}")
+    logger.info(f"Click flag added. Clicks found: {result['clicked'].sum()}")
     return result
 
 def add_historical_features(
@@ -43,25 +43,25 @@ def add_historical_features(
     features_config: Dict[str, Dict[str, str]]
 ) -> pd.DataFrame:
     """
-    Añade features históricas basadas en ventanas temporales.
+    Add historical features based on time windows.
     
     Args:
-        df: DataFrame principal
-        source_df: DataFrame fuente para calcular features
-        window_start: Inicio de la ventana temporal
-        window_end: Fin de la ventana temporal
-        features_config: Configuración de features a calcular
+        df: Main DataFrame
+        source_df: Source DataFrame for feature calculation
+        window_start: Start of time window
+        window_end: End of time window
+        features_config: Configuration of features to calculate
         
     Returns:
-        pd.DataFrame: DataFrame con features históricas añadidas
+        pd.DataFrame: DataFrame with historical features added
     """
-    logger.info(f"Añadiendo features históricas desde {window_start} hasta {window_end}")
+    logger.info(f"Adding historical features from {window_start} to {window_end}")
     
     mask = (source_df['timestamp'] >= window_start) & (source_df['timestamp'] < window_end)
     filtered_source = source_df[mask].copy()
     
     if filtered_source.empty:
-        logger.warning("No hay datos en la ventana temporal especificada")
+        logger.warning("No data in specified time window")
         for feature_name in features_config.keys():
             df[feature_name] = 0
         return df
@@ -78,7 +78,7 @@ def add_historical_features(
         elif config['agg_func'] == 'mean':
             features_df[feature_name] = grouped[config['column']].mean()
         else:
-            raise ValueError(f"Función de agregación no soportada: {config['agg_func']}")
+            raise ValueError(f"Unsupported aggregation function: {config['agg_func']}")
     
     features_df = features_df.reset_index()
     
@@ -87,7 +87,7 @@ def add_historical_features(
     for feature_name in features_config.keys():
         result[feature_name] = result[feature_name].fillna(0)
     
-    logger.info(f"Features históricas añadidas: {list(features_config.keys())}")
+    logger.info(f"Historical features added: {list(features_config.keys())}")
     return result
 
 def create_features_pipeline(
@@ -97,18 +97,18 @@ def create_features_pipeline(
     end_date: pd.Timestamp = None
 ) -> pd.DataFrame:
     """
-    Pipeline completo de creación de features.
+    Complete feature creation pipeline.
     
     Args:
-        prints_df: DataFrame de prints
-        taps_df: DataFrame de taps
-        pays_df: DataFrame de pays
-        end_date: Fecha final para el análisis (por defecto max de prints)
+        prints_df: Prints DataFrame
+        taps_df: Taps DataFrame
+        pays_df: Pays DataFrame
+        end_date: End date for analysis (default: max of prints)
         
     Returns:
-        pd.DataFrame: DataFrame con todas las features
+        pd.DataFrame: DataFrame with all features
     """
-    logger.info("Iniciando pipeline de features...")
+    logger.info("Starting features pipeline...")
     
     if end_date is None:
         end_date = prints_df['timestamp'].max()
@@ -116,15 +116,15 @@ def create_features_pipeline(
     start_last_week = end_date - timedelta(days=RECENT_DAYS)
     start_3weeks_ago = end_date - timedelta(days=WINDOW_DAYS)
     
-    logger.info(f"Ventana de análisis: {start_last_week} a {end_date}")
-    logger.info(f"Ventana histórica: {start_3weeks_ago} a {start_last_week}")
+    logger.info(f"Analysis window: {start_last_week} to {end_date}")
+    logger.info(f"Historical window: {start_3weeks_ago} to {start_last_week}")
     
     recent_prints = prints_df[
         (prints_df['timestamp'] >= start_last_week) & 
         (prints_df['timestamp'] <= end_date)
     ].copy()
     
-    logger.info(f"Prints recientes encontrados: {len(recent_prints)}")
+    logger.info(f"Recent prints found: {len(recent_prints)}")
     
     recent_prints = add_click_flag(recent_prints, taps_df)
     
@@ -153,18 +153,18 @@ def create_features_pipeline(
         }
     )
     
-    logger.info("Pipeline de features completado exitosamente")
+    logger.info("Features pipeline completed successfully")
     return recent_prints
 
 def get_feature_statistics(df: pd.DataFrame) -> Dict[str, Any]:
     """
-    Calcula estadísticas descriptivas de las features.
+    Calculate descriptive statistics of features.
     
     Args:
-        df: DataFrame con features
+        df: DataFrame with features
         
     Returns:
-        Dict: Estadísticas de las features
+        Dict: Feature statistics
     """
     feature_cols = ['print_count_3w', 'tap_count_3w', 'pay_count_3w', 'total_amount_3w']
     

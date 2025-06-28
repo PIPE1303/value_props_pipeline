@@ -1,205 +1,197 @@
 # Value Props Ranking Pipeline
 
-Pipeline de ingeniería de datos para el ranking de value propositions basado en comportamiento de usuarios.
+Data engineering pipeline for value proposition ranking based on user behavior.
 
-## Estructura del Proyecto
+## Project Structure
 
 ```
 value_props_pipeline/
-├── data/                   # Datos fuente (no modificar)
+├── data/                   # Source data (do not modify)
 │   ├── prints.json
 │   ├── taps.json
 │   └── pays.csv
-├── src/                    # Código fuente principal
+├── src/                    # Main source code
 │   ├── __init__.py
-│   ├── config.py           # Configuración del proyecto
-│   ├── io_utils.py         # Utilidades de I/O
-│   ├── feature_engineering.py  # Ingeniería de features
-│   ├── pipeline.py         # Pipeline principal (Pandas)
-│   ├── spark_pipeline.py   # Pipeline alternativo (Spark)
-│   └── utils.py            # Utilidades generales
-├── scripts/                # Scripts de ejecución
+│   ├── config.py           # Project configuration
+│   ├── io_utils.py         # I/O utilities
+│   ├── feature_engineering.py  # Feature engineering
+│   ├── pipeline.py         # Main pipeline (Pandas)
+│   ├── spark_pipeline.py   # Alternative pipeline (Spark)
+│   └── utils.py            # General utilities
+├── scripts/                # Execution scripts
 │   ├── run_spark_pipeline.py
 │   ├── compare_pipelines.py
 │   └── cleanup.py
-├── tests/                  # Tests unitarios
+├── tests/                  # Unit tests
 │   └── test_pipeline.py
-├── notebooks/              # Notebooks de exploración
-│   ├── pipeline_pandas.py
-│   └── pipeline_pyspark.py
-├── output/                 # Resultados generados (datasets, reportes)
-├── logs/                   # Logs de ejecución (pipeline.log, spark_pipeline.log, comparison.log)
-├── models/                 # Modelos entrenados (futuro)
-├── main.py                 # Script principal
-├── requirements.txt        # Dependencias
-├── pyproject.toml          # Configuración de herramientas de desarrollo
-├── Makefile                # Automatización de comandos
+├── original_pipelines/     # Original pipeline implementations (reference)
+├── output/                 # Generated results (datasets, reports)
+├── logs/                   # Execution logs (pipeline.log, spark_pipeline.log, comparison.log)
+├── models/                 # Trained models (future)
+├── main.py                 # Main script
+├── requirements.txt        # Dependencies
+├── pyproject.toml          # Development tools configuration
+├── Makefile                # Command automation
 └── README.md
 ```
 
-## Instalación
+## Installation
 
-1. **Clonar el repositorio:**
+1. **Clone the repository:**
 ```bash
 git clone <repository-url>
 cd value_props_pipeline
 ```
 
-2. **Crear entorno virtual:**
+2. **Create virtual environment:**
 ```bash
 python -m venv venv
-source venv/bin/activate  # En Windows: venv\Scripts\activate
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
-3. **Instalar dependencias:**
+3. **Install dependencies:**
 ```bash
 pip install -r requirements.txt
 ```
 
-## Uso
+## Usage
 
-### Pipeline Principal (Pandas)
+### Main Pipeline (Pandas)
 
 ```bash
 python main.py
 ```
 
-### Pipeline Spark (para datasets grandes)
+### Spark Pipeline (for large datasets)
 
 ```bash
 python scripts/run_spark_pipeline.py
 ```
 
-### Comparar resultados
+### Compare results
 
 ```bash
 python scripts/compare_pipelines.py
 ```
 
-### Ejecutar tests
+### Run tests
 
 ```bash
 pytest tests/
 ```
 
-## 🔧 Configuración
+## 🔧 Configuration
 
-El archivo `src/config.py` contiene todas las configuraciones del proyecto:
+The `src/config.py` file contains all project configurations:
 
-- **Rutas de datos**: Ubicación de archivos fuente
-- **Ventanas temporales**: Configuración de análisis histórico
-- **Configuración Spark**: Parámetros para procesamiento distribuido
-- **Columnas finales**: Esquema del dataset de salida
+- **Data paths**: Source file locations
+- **Time windows**: Historical analysis configuration
+- **Spark configuration**: Distributed processing parameters
+- **Final columns**: Output dataset schema
 
-## Features Generadas
+## Generated Features
 
-El pipeline genera las siguientes features:
+The pipeline generates the following features:
 
-| Feature | Descripción |
+| Feature | Description |
 |---------|-------------|
-| `user_id` | Identificador único del usuario |
-| `value_prop_id` | Identificador de la value proposition |
-| `timestamp` | Timestamp del evento |
-| `clicked` | Flag binario (1 si hubo click, 0 si no) |
-| `print_count_3w` | Número de prints en las últimas 3 semanas |
-| `tap_count_3w` | Número de taps en las últimas 3 semanas |
-| `pay_count_3w` | Número de pagos en las últimas 3 semanas |
-| `total_amount_3w` | Monto total pagado en las últimas 3 semanas |
+| `user_id` | Unique user identifier |
+| `value_prop_id` | Value proposition identifier |
+| `timestamp` | Event timestamp |
+| `clicked` | Binary flag (1 if clicked, 0 if not) |
+| `print_count_3w` | Number of prints in the last 3 weeks |
+| `tap_count_3w` | Number of taps in the last 3 weeks |
+| `pay_count_3w` | Number of payments in the last 3 weeks |
+| `total_amount_3w` | Total amount paid in the last 3 weeks |
 
-## Validaciones
+## Validations
 
-El pipeline incluye múltiples validaciones:
+The pipeline includes multiple validations:
 
-- **Validación de esquema**: Verifica que los datos tengan la estructura esperada
-- **Validación de calidad**: Detecta valores faltantes y anomalías
-- **Validación de integridad**: Asegura consistencia entre datasets
-- **Validación de rangos**: Verifica que las fechas y valores numéricos sean válidos
+- **Schema validation**: Verifies data has expected structure
+- **Quality validation**: Detects missing values and anomalies
+- **Integrity validation**: Ensures consistency between datasets
+- **Range validation**: Verifies dates and numeric values are valid
 
-## Reportes
+## Reports
 
-El pipeline genera automáticamente:
+The pipeline automatically generates:
 
-- **Dataset final**: CSV con todas las features (en `output/`)
-- **Reporte resumen**: Estadísticas descriptivas
-- **Metadatos**: Información del procesamiento
-- **Logs**: Trazabilidad completa del proceso (en `logs/`)
+- **Final dataset**: CSV with all features (in `output/`)
+- **Summary report**: Descriptive statistics
+- **Metadata**: Processing information
+- **Logs**: Complete process traceability (in `logs/`)
 
 ## Testing
 
 ```bash
-# Ejecutar todos los tests
+# Run all tests
 pytest
 
-# Ejecutar tests específicos
+# Run specific tests
 pytest tests/test_pipeline.py
 
-# Con cobertura
+# With coverage
 pytest --cov=src tests/
 ```
 
-## Pipeline de Datos
+## Data Pipeline
 
-### 1. Carga de Datos
-- **Prints**: Eventos de visualización de value propositions
-- **Taps**: Eventos de click en value propositions  
-- **Pays**: Eventos de pago asociados a value propositions
+### 1. Data Loading
+- **Prints**: Value proposition view events
+- **Taps**: Value proposition click events  
+- **Pays**: Payment events associated with value propositions
 
-### 2. Procesamiento
-- **Limpieza**: Validación y corrección de datos
-- **Feature Engineering**: Creación de features históricas
-- **Agregación**: Cálculo de métricas por usuario y value prop
+### 2. Processing
+- **Cleaning**: Data validation and correction
+- **Feature Engineering**: Historical feature creation
+- **Aggregation**: Metrics calculation by user and value prop
 
-### 3. Validación
-- **Calidad**: Verificación de integridad de datos
-- **Consistencia**: Validación de rangos y tipos
-- **Completitud**: Verificación de valores faltantes
+### 3. Validation
+- **Quality**: Data integrity verification
+- **Consistency**: Range and type validation
+- **Completeness**: Missing value verification
 
-### 4. Salida
-- **Dataset final**: CSV listo para modelado (en `output/`)
-- **Reportes**: Documentación del procesamiento
-- **Logs**: Trazabilidad del proceso (en `logs/`)
+### 4. Output
+- **Final dataset**: CSV ready for modeling (in `output/`)
+- **Reports**: Processing documentation
+- **Logs**: Process traceability (in `logs/`)
 
-## Optimizaciones
+## Optimizations
 
-### Pandas (Recomendado para datasets < 10GB)
-- Procesamiento en memoria
-- Optimizado para velocidad
-- Fácil debugging y desarrollo
+### Pandas (Recommended for datasets < 10GB)
+- In-memory processing
+- Optimized for speed
+- Easy debugging and development
 
-### Spark (Recomendado para datasets > 10GB)
-- Procesamiento distribuido
-- Escalabilidad horizontal
-- Manejo de memoria eficiente
+### Spark (Recommended for datasets > 10GB)
+- Distributed processing
+- Horizontal scalability
+- Efficient memory management
 
 ## Logs
 
-Los logs se guardan en la carpeta `logs/` con diferentes niveles:
+Logs are saved in the `logs/` folder with different levels:
 
-- **INFO**: Progreso del pipeline
-- **WARNING**: Problemas no críticos
-- **ERROR**: Errores que requieren atención
-- **DEBUG**: Información detallada para debugging
+- **INFO**: Pipeline progress
+- **WARNING**: Non-critical issues
+- **ERROR**: Issues requiring attention
+- **DEBUG**: Detailed debugging information
 
-## Contribución
+## Contributing
 
-1. Fork el proyecto
-2. Crear una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abrir un Pull Request
+1. Fork the project
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-## Licencia
+## License
 
-Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para detalles.
+This project is under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Soporte
+## Support
 
-Para reportar bugs o solicitar features, por favor crear un issue en el repositorio.
-
-## Documentación Adicional
-
-- [Guía de Configuración](docs/CONFIGURATION.md)
-- [API Reference](docs/API.md)
-- [Troubleshooting](docs/TROUBLESHOOTING.md)
+To report bugs or request features, please create an issue in the repository.
 
 ---

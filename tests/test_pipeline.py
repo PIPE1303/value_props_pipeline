@@ -1,5 +1,5 @@
 """
-Tests para el pipeline de Value Props Ranking.
+Tests for the Value Props Ranking Pipeline.
 """
 
 import pytest
@@ -19,12 +19,11 @@ from src.utils import calculate_data_quality_metrics, validate_dataset_schema
 
 @pytest.fixture
 def sample_data():
-    """Crear datos de muestra para testing."""
+    """Create sample data for testing."""
     ts1 = datetime.now() - timedelta(days=1)
     ts2 = datetime.now() - timedelta(days=2)
     ts3 = datetime.now() - timedelta(days=3)
     ts4 = datetime.now() - timedelta(days=4)
-
     prints_data = {
         'user_id': ['user1', 'user2', 'user1', 'user3'],
         'value_prop_id': ['prop1', 'prop2', 'prop1', 'prop3'],
@@ -36,7 +35,6 @@ def sample_data():
             {'value_prop': 'prop3'}
         ]
     }
-    
     taps_data = {
         'user_id': ['user1', 'user2'],
         'value_prop_id': ['prop1', 'prop2'],
@@ -46,14 +44,12 @@ def sample_data():
             {'value_prop': 'prop2'}
         ]
     }
-    
     pays_data = {
         'user_id': ['user1', 'user2'],
         'value_prop_id': ['prop1', 'prop2'],
         'timestamp': [datetime.now() - timedelta(days=5), datetime.now() - timedelta(days=6)],
         'amount': [100.0, 200.0]
     }
-    
     return (
         pd.DataFrame(prints_data),
         pd.DataFrame(taps_data),
@@ -61,10 +57,10 @@ def sample_data():
     )
 
 class TestPipeline:
-    """Tests para el pipeline principal."""
+    """Tests for the pipeline."""
     
     def test_add_click_flag(self, sample_data):
-        """Test para añadir flag de click."""
+        """Test for adding click flag."""
         prints, taps, _ = sample_data
         
         result = add_click_flag(prints, taps)
@@ -75,7 +71,7 @@ class TestPipeline:
         assert len(result) == len(prints)
     
     def test_add_historical_features(self, sample_data):
-        """Test para añadir features históricas."""
+        """Test for adding historical features."""
         prints, taps, pays = sample_data
         
         end_date = prints['timestamp'].max()
@@ -94,7 +90,7 @@ class TestPipeline:
         assert (result['print_count_3w'] >= 0).all()
     
     def test_create_features_pipeline(self, sample_data):
-        """Test para el pipeline completo de features."""
+        """Test for the complete features pipeline."""
         prints, taps, pays = sample_data
         
         result = create_features_pipeline(prints, taps, pays)
@@ -112,7 +108,7 @@ class TestPipeline:
         assert (result['clicked'].isin([0, 1])).all()
     
     def test_validate_data(self, sample_data):
-        """Test para validación de datos."""
+        """Test for data validation."""
         prints, taps, pays = sample_data
         
         assert validate_data(prints, taps, pays) == True
@@ -121,7 +117,7 @@ class TestPipeline:
         assert validate_data(invalid_prints, taps, pays) == False
     
     def test_calculate_data_quality_metrics(self, sample_data):
-        """Test para métricas de calidad de datos."""
+        """Test for data quality metrics."""
         prints, _, _ = sample_data
         
         prints_clean = prints.drop(columns=['event_data'])
@@ -136,7 +132,7 @@ class TestPipeline:
         assert metrics['total_columns'] == len(prints_clean.columns)
     
     def test_validate_dataset_schema(self, sample_data):
-        """Test para validación de esquema."""
+        """Test for dataset schema validation."""
         prints, _, _ = sample_data
         
         expected_schema = {
@@ -154,11 +150,11 @@ class TestPipeline:
         assert validate_dataset_schema(prints, invalid_schema) == False
 
 class TestIntegration:
-    """Tests de integración."""
+    """Integration tests."""
     
     @patch('src.io_utils.load_data')
     def test_build_dataset_integration(self, mock_load_data, sample_data):
-        """Test de integración para build_dataset."""
+        """Test for integration with build_dataset."""
         mock_load_data.return_value = sample_data
         
         result = build_dataset()
@@ -173,7 +169,7 @@ class TestIntegration:
             assert col in result.columns
     
     def test_pipeline_with_validation(self, sample_data):
-        """Test del pipeline con validaciones."""
+        """Test for pipeline with validation."""
         with patch('src.io_utils.load_data', return_value=sample_data):
             result = run_pipeline_with_validation()
             
@@ -182,16 +178,16 @@ class TestIntegration:
             assert (result['clicked'].isin([0, 1])).all()
 
 class TestEdgeCases:
-    """Tests para casos edge."""
+    """Tests for edge cases."""
     
     def test_missing_columns(self):
-        """Test para manejo de columnas faltantes."""
+        """Test for handling missing columns."""
         df = pd.DataFrame({'col1': [1, 2, 3]})
         
         assert validate_dataset_schema(df, {'required_col': 'object'}) == False
     
     def test_invalid_date_ranges(self):
-        """Test para rangos de fechas inválidos."""
+        """Test for invalid date ranges."""
         prints_data = {
             'user_id': ['user1'],
             'value_prop_id': ['prop1'],

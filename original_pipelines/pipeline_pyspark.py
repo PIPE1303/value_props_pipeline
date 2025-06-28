@@ -128,5 +128,5 @@ final_cols = [
 ]
 recent_prints.select(final_cols).toPandas().to_csv("dataset_final.csv", index=False)
 
-print("Dataset generado exitosamente con PySpark.")
+print("Dataset generated successfully with PySpark.")
 spark.stop()

@@ -7,44 +7,44 @@ PYTEST = pytest
 BLACK = black
 FLAKE8 = flake8
 
-# Directorios
+# Directories
 SRC_DIR = src
 TESTS_DIR = tests
 SCRIPTS_DIR = scripts
 
-help: ## Mostrar esta ayuda
-	@echo "Comandos disponibles:"
+help: ## Show this help
+	@echo "Available commands:"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-install: ## Instalar dependencias
+install: ## Install dependencies
 	$(PIP) install -r requirements.txt
 
-install-dev: ## Instalar dependencias de desarrollo
+install-dev: ## Install development dependencies
 	$(PIP) install -r requirements.txt
 	$(PIP) install pytest-cov black flake8
 
-test: ## Ejecutar tests
+test: ## Run tests
 	$(PYTEST) $(TESTS_DIR)/ -v
 
-test-cov: ## Ejecutar tests con cobertura
+test-cov: ## Run tests with coverage
 	$(PYTEST) $(TESTS_DIR)/ --cov=$(SRC_DIR) --cov-report=html --cov-report=term
 
-run: ## Ejecutar pipeline principal (Pandas)
+run: ## Run main pipeline (Pandas)
 	$(PYTHON) main.py
 
-run-spark: ## Ejecutar pipeline Spark
+run-spark: ## Run Spark pipeline
 	$(PYTHON) $(SCRIPTS_DIR)/run_spark_pipeline.py
 
-compare: ## Comparar resultados de ambos pipelines
+compare: ## Compare results from both pipelines
 	$(PYTHON) $(SCRIPTS_DIR)/compare_pipelines.py
 
-format: ## Formatear código con Black
+format: ## Format code with Black
 	$(BLACK) $(SRC_DIR)/ $(SCRIPTS_DIR)/ $(TESTS_DIR)/
 
-lint: ## Verificar estilo de código con Flake8
+lint: ## Check code style with Flake8
 	$(FLAKE8) $(SRC_DIR)/ $(SCRIPTS_DIR)/ $(TESTS_DIR)/
 
-clean: ## Limpiar archivos generados
+clean: ## Clean generated files
 	rm -rf output/*
 	rm -rf logs/*
 	rm -rf models/*
@@ -56,10 +56,10 @@ clean: ## Limpiar archivos generados
 	rm -rf htmlcov/
 	find . -type f -name "*.pyc" -delete
 
-setup: ## Configurar el proyecto completo
+setup: ## Setup complete project
 	mkdir -p output logs models
 	$(PIP) install -r requirements.txt
 
-all: setup format lint test run ## Ejecutar todo el pipeline: setup, format, lint, test, run
+all: setup format lint test run ## Run complete pipeline: setup, format, lint, test, run
 
-check: format lint test ## Verificar código: format, lint, test 
+check: format lint test ## Check code: format, lint, test 

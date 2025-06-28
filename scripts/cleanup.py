@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script de limpieza para el proyecto Value Props Ranking.
+Cleanup script for the Value Props Ranking project.
 """
 
 import shutil
@@ -9,7 +9,7 @@ from pathlib import Path
 import logging
 
 def cleanup_project():
-    """Limpia archivos temporales y generados del proyecto."""
+    """Clean temporary and generated files from the project."""
     
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
@@ -43,24 +43,24 @@ def cleanup_project():
         "*.backup"
     ]
     
-    logger.info("Iniciando limpieza del proyecto...")
+    logger.info("Starting project cleanup...")
     
     for dir_path in dirs_to_clean:
         if os.path.exists(dir_path):
             try:
                 if os.path.isdir(dir_path):
                     shutil.rmtree(dir_path)
-                    logger.info(f"Directorio eliminado: {dir_path}")
+                    logger.info(f"Directory removed: {dir_path}")
                 else:
                     os.remove(dir_path)
-                    logger.info(f"Archivo eliminado: {dir_path}")
+                    logger.info(f"File removed: {dir_path}")
             except Exception as e:
-                logger.warning(f"No se pudo eliminar {dir_path}: {e}")
+                logger.warning(f"Could not remove {dir_path}: {e}")
     
     required_dirs = ["output", "logs", "models"]
     for dir_path in required_dirs:
         Path(dir_path).mkdir(exist_ok=True)
-        logger.info(f"Directorio creado/verificado: {dir_path}")
+        logger.info(f"Directory created/verified: {dir_path}")
     
     for pattern in files_to_remove:
         for root, dirs, files in os.walk("."):
@@ -69,11 +69,11 @@ def cleanup_project():
                     file_path = os.path.join(root, file)
                     try:
                         os.remove(file_path)
-                        logger.info(f"Archivo eliminado: {file_path}")
+                        logger.info(f"File removed: {file_path}")
                     except Exception as e:
-                        logger.warning(f"No se pudo eliminar {file_path}: {e}")
+                        logger.warning(f"Could not remove {file_path}: {e}")
     
-    logger.info("Limpieza completada exitosamente!")
+    logger.info("Cleanup completed successfully!")
 
 if __name__ == "__main__":
     cleanup_project() 

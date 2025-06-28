@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script para ejecutar el pipeline de Value Props Ranking usando PySpark.
+Script to execute the Value Props Ranking Pipeline using PySpark.
 """
 
 import sys
@@ -14,14 +14,14 @@ from src.utils import setup_logging, create_summary_report, save_metadata
 from src.config import OUTPUT_DIR, LOGS_DIR
 
 def main():
-    """Función principal para ejecutar el pipeline de Spark."""
+    """Main function to execute the Spark pipeline."""
     
     log_file = LOGS_DIR / "spark_pipeline.log"
     setup_logging(log_level="INFO", log_file=log_file)
     logger = logging.getLogger(__name__)
     
     try:
-        logger.info("Iniciando Value Props Ranking Pipeline con Spark")
+        logger.info("Starting Value Props Ranking Pipeline with Spark")
         
         spark_pipeline = SparkValuePropsPipeline()
         
@@ -41,13 +41,13 @@ def main():
         }
         save_metadata(metadata, "spark_dataset_metadata.json")
         
-        logger.info("Pipeline de Spark completado exitosamente")
-        logger.info(f"Dataset generado: {OUTPUT_DIR / 'dataset_final_spark.csv'}")
-        logger.info(f"Registros procesados: {len(pandas_dataset):,}")
-        logger.info(f"Tasa de clicks: {pandas_dataset['clicked'].mean():.2%}")
+        logger.info("Spark pipeline completed successfully")
+        logger.info(f"Dataset generated: {OUTPUT_DIR / 'dataset_final_spark.csv'}")
+        logger.info(f"Records processed: {len(pandas_dataset):,}")
+        logger.info(f"Click rate: {pandas_dataset['clicked'].mean():.2%}")
         
     except Exception as e:
-        logger.error(f"Error en el pipeline de Spark: {str(e)}")
+        logger.error(f"Error in Spark pipeline: {str(e)}")
         sys.exit(1)
 
 if __name__ == "__main__":

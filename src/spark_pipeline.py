@@ -1,204 +1,239 @@
 """
-Pipeline de procesamiento usando PySpark para datasets grandes.
+PySpark implementation of the Value Props Ranking Pipeline.
 """
 
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, from_json, to_timestamp, count, sum as spark_sum, when
-from pyspark.sql.types import StructType, StructField, StringType, DoubleType, TimestampType, MapType, DateType
-from datetime import timedelta
+import pandas as pd
+from pyspark.sql import SparkSession, DataFrame
+from pyspark.sql.functions import col, when, sum as spark_sum, count as spark_count
+from pyspark.sql.types import StructType, StructField, StringType, TimestampType, DoubleType, IntegerType
 import logging
+from datetime import timedelta
 from typing import Optional
-from .config import SPARK_CONFIG, PRINTS_FILE, TAPS_FILE, PAYS_FILE, WINDOW_DAYS, RECENT_DAYS, FINAL_COLUMNS
+from .config import SPARK_CONFIG, WINDOW_DAYS, RECENT_DAYS, FINAL_COLUMNS
 
 logger = logging.getLogger(__name__)
 
 class SparkValuePropsPipeline:
-    """Pipeline de procesamiento usando PySpark."""
+    """PySpark implementation of the Value Props Ranking Pipeline."""
     
-    def __init__(self, spark_config: Optional[dict] = None):
+    def __init__(self):
+        """Initialize Spark session and pipeline."""
+        self.spark = self._create_spark_session()
+        logger.info("Spark session initialized")
+    
+    def _create_spark_session(self) -> SparkSession:
+        """Create and configure Spark session."""
+        builder = SparkSession.builder
+        
+        for key, value in SPARK_CONFIG.items():
+            builder = builder.config(key, value)
+        
+        return builder.getOrCreate()
+    
+    def load_data(self) -> tuple[DataFrame, DataFrame, DataFrame]:
         """
-        Inicializa el pipeline de Spark.
+        Load prints, taps, and pays data into Spark DataFrames.
+        
+        Returns:
+            tuple: (prints_df, taps_df, pays_df)
+        """
+        logger.info("Loading data into Spark...")
+        
+        prints_schema = StructType([
+            StructField("user_id", StringType(), True),
+            StructField("value_prop_id", StringType(), True),
+            StructField("timestamp", TimestampType(), True)
+        ])
+        
+        taps_schema = StructType([
+            StructField("user_id", StringType(), True),
+            StructField("value_prop_id", StringType(), True),
+            StructField("timestamp", TimestampType(), True)
+        ])
+        
+        pays_schema = StructType([
+            StructField("user_id", StringType(), True),
+            StructField("value_prop_id", StringType(), True),
+            StructField("timestamp", TimestampType(), True),
+            StructField("amount", DoubleType(), True)
+        ])
+        
+        prints_df = self.spark.read.json("data/prints.json", schema=prints_schema)
+        taps_df = self.spark.read.json("data/taps.json", schema=taps_schema)
+        pays_df = self.spark.read.csv("data/pays.csv", header=True, schema=pays_schema)
+        
+        logger.info(f"Data loaded: {prints_df.count()} prints, {taps_df.count()} taps, {pays_df.count()} pays")
+        return prints_df, taps_df, pays_df
+    
+    def add_click_flag(self, prints_df: DataFrame, taps_df: DataFrame) -> DataFrame:
+        """
+        Add 'clicked' column based on matches with taps.
         
         Args:
-            spark_config: Configuración personalizada de Spark
+            prints_df: Prints DataFrame
+            taps_df: Taps DataFrame
+            
+        Returns:
+            DataFrame: DataFrame with 'clicked' column
         """
-        self.spark_config = spark_config or SPARK_CONFIG
-        self.spark = None
-        self._setup_spark()
-        self._define_schemas()
-    
-    def _setup_spark(self):
-        """Configura la sesión de Spark."""
-        logger.info("Configurando sesión de Spark...")
+        logger.info("Adding click flag...")
         
-        builder = SparkSession.builder.appName(self.spark_config["app_name"])
-        
-        for key, value in self.spark_config.items():
-            if key != "app_name":
-                builder = builder.config(key, value)
-        
-        self.spark = builder.getOrCreate()
-        logger.info("Sesión de Spark configurada exitosamente")
-    
-    def _define_schemas(self):
-        """Define los esquemas para los diferentes tipos de datos."""
-        self.prints_schema = StructType([
-            StructField("day", DateType()),
-            StructField("event_data", MapType(StringType(), StringType())),
-            StructField("user_id", StringType()),
-        ])
-        
-        self.taps_schema = self.prints_schema
-        
-        self.pays_schema = StructType([
-            StructField("pay_date", DateType()),
-            StructField("amount", DoubleType()),
-            StructField("user_id", StringType()),
-            StructField("value_prop_id", StringType()),
-        ])
-    
-    def load_data(self):
-        """Carga los datos desde los archivos fuente."""
-        logger.info("Cargando datos con Spark...")
-        
-        prints = self.spark.read.schema(self.prints_schema).json(str(PRINTS_FILE))
-        prints = prints.withColumn("value_prop_id", col("event_data").getItem("value_prop"))
-        prints = prints.withColumn("timestamp", to_timestamp(col("day")))
-        
-        taps = self.spark.read.schema(self.taps_schema).json(str(TAPS_FILE))
-        taps = taps.withColumn("value_prop_id", col("event_data").getItem("value_prop"))
-        taps = taps.withColumn("timestamp", to_timestamp(col("day")))
-        
-        pays = self.spark.read.schema(self.pays_schema).csv(str(PAYS_FILE), header=True)
-        pays = pays.withColumn("timestamp", to_timestamp(col("pay_date")))
-        
-        logger.info(f"Datos cargados: {prints.count()} prints, {taps.count()} taps, {pays.count()} pays")
-        return prints, taps, pays
-    
-    def add_click_flag(self, prints_df, taps_df):
-        """Añade la columna clicked basada en coincidencias con taps."""
-        logger.info("Añadiendo flag de click...")
-        
-        taps_set = taps_df.select("user_id", "value_prop_id", "timestamp").dropDuplicates()
-        taps_set = taps_set.withColumnRenamed("timestamp", "tap_timestamp")
+        taps_unique = taps_df.select("user_id", "value_prop_id", "timestamp").distinct()
         
         result = prints_df.join(
-            taps_set,
-            (prints_df.user_id == taps_set.user_id) &
-            (prints_df.value_prop_id == taps_set.value_prop_id) &
-            (prints_df.timestamp == taps_set.tap_timestamp),
+            taps_unique,
+            on=["user_id", "value_prop_id", "timestamp"],
             how="left"
         )
         
-        result = result.drop(taps_set.user_id).drop(taps_set.value_prop_id)
-        result = result.withColumn("clicked", when(col("tap_timestamp").isNotNull(), 1).otherwise(0))
+        result = result.withColumn("clicked", when(col("user_id").isNotNull(), 1).otherwise(0))
+        
+        click_count = result.filter(col("clicked") == 1).count()
+        logger.info(f"Click flag added. Clicks found: {click_count}")
         
         return result
     
-    def add_historical_features(self, df_main, df_source, filter_start, filter_end, 
-                              user_col="user_id", prop_col="value_prop_id", 
-                              agg_col=None, new_col="recent_count", agg_func="count"):
+    def add_historical_features(
+        self,
+        df: DataFrame,
+        source_df: DataFrame,
+        window_start: str,
+        window_end: str,
+        feature_name: str,
+        agg_type: str = "count"
+    ) -> DataFrame:
         """
-        Añade features históricas usando ventanas temporales.
+        Add historical features based on time windows.
         
         Args:
-            df_main: DataFrame principal
-            df_source: DataFrame fuente
-            filter_start: Inicio de la ventana temporal
-            filter_end: Fin de la ventana temporal
-            user_col: Columna de usuario
-            prop_col: Columna de value prop
-            agg_col: Columna para agregación (para sum)
-            new_col: Nombre de la nueva columna
-            agg_func: Función de agregación (count o sum)
+            df: Main DataFrame
+            source_df: Source DataFrame for feature calculation
+            window_start: Start of time window
+            window_end: End of time window
+            feature_name: Name of the feature to create
+            agg_type: Aggregation type (count, sum, mean)
+            
+        Returns:
+            DataFrame: DataFrame with historical feature added
         """
-        source_filtered = df_source.filter(
-            (col("timestamp") >= filter_start) & (col("timestamp") < filter_end)
+        logger.info(f"Adding historical feature: {feature_name}")
+        
+        filtered_source = source_df.filter(
+            (col("timestamp") >= window_start) & (col("timestamp") < window_end)
         )
         
-        if agg_func == "count":
-            aggregated = source_filtered.groupBy(user_col, prop_col).agg(
-                count("*").alias(new_col)
+        if agg_type == "count":
+            feature_df = filtered_source.groupBy("user_id", "value_prop_id").agg(
+                spark_count("*").alias(feature_name)
             )
-        elif agg_func == "sum" and agg_col:
-            aggregated = source_filtered.groupBy(user_col, prop_col).agg(
-                spark_sum(col(agg_col)).alias(new_col)
+        elif agg_type == "sum":
+            feature_df = filtered_source.groupBy("user_id", "value_prop_id").agg(
+                spark_sum("amount").alias(feature_name)
             )
         else:
-            raise ValueError("Invalid agg_func or missing agg_col for sum.")
+            raise ValueError(f"Unsupported aggregation type: {agg_type}")
         
-        result = df_main.join(aggregated, on=[user_col, prop_col], how="left")
-        return result.fillna({new_col: 0})
+        result = df.join(feature_df, on=["user_id", "value_prop_id"], how="left")
+        result = result.na.fill(0, subset=[feature_name])
+        
+        logger.info(f"Historical feature '{feature_name}' added")
+        return result
     
-    def build_dataset(self, end_date=None):
-        """Construye el dataset final con todas las features."""
-        logger.info("Construyendo dataset con Spark...")
+    def create_features_pipeline(
+        self,
+        prints_df: DataFrame,
+        taps_df: DataFrame,
+        pays_df: DataFrame,
+        end_date: Optional[str] = None
+    ) -> DataFrame:
+        """
+        Complete feature creation pipeline.
         
-        prints, taps, pays = self.load_data()
+        Args:
+            prints_df: Prints DataFrame
+            taps_df: Taps DataFrame
+            pays_df: Pays DataFrame
+            end_date: End date for analysis
+            
+        Returns:
+            DataFrame: DataFrame with all features
+        """
+        logger.info("Starting Spark features pipeline...")
         
         if end_date is None:
-            end_date = prints.agg({"timestamp": "max"}).collect()[0][0]
+            end_date = prints_df.agg({"timestamp": "max"}).collect()[0][0]
         
         start_last_week = end_date - timedelta(days=RECENT_DAYS)
         start_3weeks_ago = end_date - timedelta(days=WINDOW_DAYS)
         
-        logger.info(f"Ventana de análisis: {start_last_week} a {end_date}")
-        logger.info(f"Ventana histórica: {start_3weeks_ago} a {start_last_week}")
+        logger.info(f"Analysis window: {start_last_week} to {end_date}")
+        logger.info(f"Historical window: {start_3weeks_ago} to {start_last_week}")
         
-        recent_prints = prints.filter(
+        recent_prints = prints_df.filter(
             (col("timestamp") >= start_last_week) & (col("timestamp") <= end_date)
         )
         
-        recent_prints = self.add_click_flag(recent_prints, taps)
+        recent_count = recent_prints.count()
+        logger.info(f"Recent prints found: {recent_count}")
+        
+        recent_prints = self.add_click_flag(recent_prints, taps_df)
         
         recent_prints = self.add_historical_features(
-            recent_prints, prints, start_3weeks_ago, start_last_week,
-            new_col="print_count_3w", agg_func="count"
+            recent_prints, prints_df, start_3weeks_ago, start_last_week,
+            "print_count_3w", "count"
         )
         
         recent_prints = self.add_historical_features(
-            recent_prints, taps, start_3weeks_ago, start_last_week,
-            new_col="tap_count_3w", agg_func="count"
+            recent_prints, taps_df, start_3weeks_ago, start_last_week,
+            "tap_count_3w", "count"
         )
         
         recent_prints = self.add_historical_features(
-            recent_prints, pays, start_3weeks_ago, start_last_week,
-            new_col="pay_count_3w", agg_func="count"
+            recent_prints, pays_df, start_3weeks_ago, start_last_week,
+            "pay_count_3w", "count"
         )
         
         recent_prints = self.add_historical_features(
-            recent_prints, pays, start_3weeks_ago, start_last_week,
-            agg_col="amount", new_col="total_amount_3w", agg_func="sum"
+            recent_prints, pays_df, start_3weeks_ago, start_last_week,
+            "total_amount_3w", "sum"
         )
         
-        logger.info("Dataset construido exitosamente con Spark")
+        logger.info("Spark features pipeline completed successfully")
         return recent_prints
     
-    def save_dataset(self, df, filename="dataset_final_spark.csv"):
-        """Guarda el dataset final."""
-        from .config import OUTPUT_DIR
+    def run_pipeline(self, output_filename: str = "dataset_final_spark.csv") -> DataFrame:
+        """
+        Execute the complete Spark pipeline.
         
-        output_path = OUTPUT_DIR / filename
-        df.select(FINAL_COLUMNS).toPandas().to_csv(output_path, index=False)
-        logger.info(f"Dataset guardado en: {output_path}")
-    
-    def run_pipeline(self, output_filename="dataset_final_spark.csv"):
-        """Ejecuta el pipeline completo de Spark."""
-        logger.info("Ejecutando pipeline de Spark...")
+        Args:
+            output_filename: Output filename
+            
+        Returns:
+            DataFrame: Final dataset
+        """
+        logger.info("Executing Spark pipeline...")
         
         try:
-            dataset = self.build_dataset()
-            self.save_dataset(dataset, output_filename)
-            logger.info("Pipeline de Spark completado exitosamente")
-            return dataset
+            prints_df, taps_df, pays_df = self.load_data()
+            
+            dataset = self.create_features_pipeline(prints_df, taps_df, pays_df)
+            
+            final_dataset = dataset.select(FINAL_COLUMNS)
+            
+            final_dataset.write.mode("overwrite").csv(
+                f"output/{output_filename}",
+                header=True
+            )
+            
+            logger.info("Spark pipeline completed successfully")
+            return final_dataset
+            
         except Exception as e:
-            logger.error(f"Error en pipeline de Spark: {str(e)}")
+            logger.error(f"Error in Spark pipeline: {str(e)}")
             raise
-        finally:
-            self.cleanup()
     
-    def cleanup(self):
-        """Limpia recursos de Spark."""
-        if self.spark:
+    def __del__(self):
+        """Clean up Spark session."""
+        if hasattr(self, 'spark'):
             self.spark.stop()
-            logger.info("Sesión de Spark cerrada") 
+            logger.info("Spark session stopped") 

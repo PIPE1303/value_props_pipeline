@@ -9,83 +9,83 @@ logger = logging.getLogger(__name__)
 
 def build_dataset(end_date: Optional[pd.Timestamp] = None) -> pd.DataFrame:
     """
-    Construye el dataset final con todas las features.
+    Build the final dataset with all features.
     
     Args:
-        end_date: Fecha final para el análisis (opcional)
+        end_date: End date for analysis (optional)
         
     Returns:
-        pd.DataFrame: Dataset final con features
+        pd.DataFrame: Final dataset with features
     """
-    logger.info("Iniciando construcción del dataset...")
+    logger.info("Starting dataset construction...")
     
     try:
         prints, taps, pays = load_data()
         
         if not validate_data(prints, taps, pays):
-            raise ValueError("Los datos no pasaron la validación")
+            raise ValueError("Data validation failed")
         
         dataset = create_features_pipeline(prints, taps, pays, end_date)
         
         final_dataset = dataset[FINAL_COLUMNS].copy()
         
         stats = get_feature_statistics(final_dataset)
-        logger.info("Estadísticas del dataset:")
+        logger.info("Dataset statistics:")
         for feature, stat in stats.items():
             logger.info(f"  {feature}: mean={stat['mean']:.2f}, std={stat['std']:.2f}")
         
-        logger.info(f"Dataset construido exitosamente con {len(final_dataset)} registros")
+        logger.info(f"Dataset built successfully with {len(final_dataset)} records")
         return final_dataset
         
     except Exception as e:
-        logger.error(f"Error en la construcción del dataset: {str(e)}")
+        logger.error(f"Error in dataset construction: {str(e)}")
         raise
 
 def run_pipeline(output_filename: str = "dataset_final.csv") -> None:
     """
-    Ejecuta el pipeline completo y guarda el resultado.
+    Execute the complete pipeline and save the result.
     
     Args:
-        output_filename: Nombre del archivo de salida
+        output_filename: Output filename
     """
-    logger.info("Ejecutando pipeline completo...")
+    logger.info("Executing complete pipeline...")
     
     try:
         dataset = build_dataset()
         
         save_dataset(dataset, output_filename)
         
-        logger.info("Pipeline completado exitosamente")
+        logger.info("Pipeline completed successfully")
         
     except Exception as e:
-        logger.error(f"Error en el pipeline: {str(e)}")
+        logger.error(f"Error in pipeline: {str(e)}")
         raise
 
 def run_pipeline_with_validation() -> pd.DataFrame:
     """
-    Ejecuta el pipeline con validaciones adicionales.
+    Execute the pipeline with additional validations.
     
     Returns:
-        pd.DataFrame: Dataset final validado
+        pd.DataFrame: Validated final dataset
     """
-    logger.info("Ejecutando pipeline con validaciones...")
+    logger.info("Executing pipeline with validations...")
     
     dataset = build_dataset()
     
-    logger.info("Realizando validaciones adicionales...")
+    logger.info("Performing additional validations...")
     
     critical_cols = ['user_id', 'value_prop_id', 'timestamp']
     for col in critical_cols:
         if dataset[col].isnull().any():
-            logger.warning(f"Valores NaN encontrados en columna crítica: {col}")
+            logger.warning(f"NaN values found in critical column: {col}")
     
     if not set(dataset['clicked'].unique()).issubset({0, 1}):
-        logger.warning("La columna 'clicked' no es binaria")
+        logger.warning("'clicked' column is not binary")
     
     numeric_features = ['print_count_3w', 'tap_count_3w', 'pay_count_3w', 'total_amount_3w']
     for feature in numeric_features:
         if (dataset[feature] < 0).any():
-            logger.warning(f"Valores negativos encontrados en {feature}")
+            logger.warning(f"Negative values found in {feature}")
     
-    logger.info("Validaciones completadas")
+    logger.info("Validations completed")
     return dataset
